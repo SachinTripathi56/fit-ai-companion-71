@@ -1,8 +1,8 @@
-import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/auth.store";
 import { AppShell } from "@/components/layout/AppShell";
-import { useNavigate } from "@tanstack/react-router";
+
 
 export const Route = createFileRoute("/_authenticated")({
   component: AuthenticatedLayout,
