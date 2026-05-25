@@ -5,6 +5,8 @@ import { Send, Mic, Sparkles, Plus, MessageSquare } from "lucide-react";
 import { chatService } from "@/services/chat.service";
 import { mockChatSessions } from "@/lib/mock-data";
 import type { ChatMessage, ChatSession } from "@/types";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useChatHistory } from "@/hooks/useDashboard";
 
 export const Route = createFileRoute("/_authenticated/coach")({
   head: () => ({ meta: [{ title: "AI Coach — AIFit" }] }),
@@ -19,16 +21,53 @@ const suggestions = [
 ];
 
 function CoachPage() {
+  const queryClient = useQueryClient();
+  const { data: history } = useChatHistory();
   const [sessions, setSessions] = useState<ChatSession[]>(mockChatSessions);
-  const [activeId, setActiveId] = useState<string>(sessions[0].id);
-  const active = sessions.find((s) => s.id === activeId)!;
+  const [activeId, setActiveId] = useState<string>(sessions[0]?.id || "c1");
+  const active = sessions.find((s) => s.id === activeId) || mockChatSessions[0];
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Sync backend history to state
+  useEffect(() => {
+    if (history && history.length > 0) {
+      const backendSessions: ChatSession[] = history.map((h) => {
+        const existing = sessions.find((s) => s.id === h.id);
+        return {
+          id: h.id,
+          title: h.title || "Untitled Conversation",
+          created_at: h.created_at,
+          messages: existing?.messages || [],
+        };
+      });
+      setSessions(backendSessions);
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(activeId)) {
+        setActiveId(backendSessions[0].id);
+      }
+    }
+  }, [history]);
+
+  // Load messages for active session if it is a real session UUID
+  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(activeId);
+  const { data: dbMessages } = useQuery({
+    queryKey: ["chat", "session", activeId],
+    queryFn: () => chatService.session(activeId),
+    enabled: isUUID,
+  });
+
+  useEffect(() => {
+    if (dbMessages && isUUID) {
+      setSessions((prev) =>
+        prev.map((s) => (s.id === activeId ? { ...s, messages: dbMessages } : s))
+      );
+    }
+  }, [dbMessages, activeId, isUUID]);
+
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [active.messages.length, typing]);
+  }, [active?.messages?.length, typing]);
 
   const send = async (text: string) => {
     if (!text.trim()) return;
@@ -40,9 +79,19 @@ function CoachPage() {
 
     let reply = "Got it — let me design a quick plan around that. (Backend reply will appear here once connected.)";
     try {
-      const res = await chatService.send(text, activeId);
-      reply = res.content;
-    } catch { /* mock fallback */ }
+      const res = (await chatService.send(text, isUUID ? activeId : undefined)) as any;
+      reply = res.reply.content;
+      const newSessionId = res.session_id;
+      if (newSessionId && newSessionId !== activeId) {
+        setSessions((ss) => ss.map((s) => s.id === activeId ? { ...s, id: newSessionId } : s));
+        setActiveId(newSessionId);
+      }
+      queryClient.invalidateQueries({ queryKey: ["chat", "history"] });
+      queryClient.invalidateQueries({ queryKey: ["chat", "session", newSessionId || activeId] });
+    } catch (e) {
+      console.error(e);
+      /* mock fallback */
+    }
 
     setTyping(false);
     const botMsg: ChatMessage = {

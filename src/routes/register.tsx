@@ -19,15 +19,24 @@ function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const onSubmit = async (e: FormEvent) => {
+  const onSubmit = (e: FormEvent) => {
     e.preventDefault();
-    try {
-      await register.mutateAsync({ name, email, password });
-      navigate({ to: "/onboarding" });
-    } catch {
-      setSession({ ...mockUser, name: name || mockUser.name, email: email || mockUser.email, onboarded: false }, "mock", "mock");
-      navigate({ to: "/onboarding" });
-    }
+    register.mutate(
+      { name, email, password },
+      {
+        onSuccess: () => {
+          navigate({ to: "/onboarding" });
+        },
+        onError: (error: any) => {
+          if (error.response && (error.response.status === 409 || error.response.status === 422)) {
+            alert(error.response.data?.detail || "Registration failed");
+            return;
+          }
+          setSession({ ...mockUser, name: name || mockUser.name, email: email || mockUser.email, onboarded: false }, "mock", "mock");
+          navigate({ to: "/onboarding" });
+        },
+      }
+    );
   };
 
   return (

@@ -19,16 +19,25 @@ function LoginPage() {
   const [password, setPassword] = useState("demo1234");
   const [err, setErr] = useState<string | null>(null);
 
-  const onSubmit = async (e: FormEvent) => {
+  const onSubmit = (e: FormEvent) => {
     e.preventDefault(); setErr(null);
-    try {
-      await login.mutateAsync({ email, password });
-      navigate({ to: "/dashboard" });
-    } catch {
-      // Backend not connected yet — sign in with mock session so UI is explorable.
-      setSession(mockUser, "mock.access.token", "mock.refresh.token");
-      navigate({ to: "/dashboard" });
-    }
+    login.mutate(
+      { email, password },
+      {
+        onSuccess: () => {
+          navigate({ to: "/dashboard" });
+        },
+        onError: (error: any) => {
+          if (error.response && (error.response.status === 401 || error.response.status === 403 || error.response.status === 422)) {
+            setErr(error.response.data?.detail || "Invalid email or password");
+            return;
+          }
+          // Backend not connected yet — sign in with mock session so UI is explorable.
+          setSession(mockUser, "mock.access.token", "mock.refresh.token");
+          navigate({ to: "/dashboard" });
+        },
+      }
+    );
   };
 
   return (

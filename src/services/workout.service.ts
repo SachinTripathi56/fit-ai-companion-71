@@ -8,6 +8,8 @@ export const workoutService = {
   week: () => api.get<WorkoutSession[]>(endpoints.workouts.week),
   history: () => api.get<WorkoutSession[]>(endpoints.workouts.history),
   exercise: (id: string) => api.get<Exercise>(endpoints.workouts.exercise(id)),
-  generate: () => api.post<WorkoutSession>(endpoints.workouts.generate),
-  complete: (id: string) => api.post<{ ok: true }>(endpoints.workouts.complete(id)),
+  generate: (options?: { plan_name?: string; weeks?: number; focus_areas?: string[] }) =>
+    api.post<WorkoutSession>(endpoints.workouts.generate, options ?? {}),
+  complete: (id: string, data?: { duration_minutes?: number; calories_burned?: number; rating?: number; notes?: string }) =>
+    api.post<{ message: string }>(endpoints.workouts.complete(id), data ?? {}),
 };

@@ -64,7 +64,7 @@ apiClient.interceptors.response.use(
       original._retry = true;
       isRefreshing = true;
       try {
-        const { data } = await axios.post(`${API_BASE_URL}${endpoints.auth.refresh}`, {
+        const { data } = await axios.post(`${API_BASE_URL.replace(/\/$/, "")}${endpoints.auth.refresh}`, {
           refresh_token: refresh,
         });
         tokenStorage.set(data.access_token, data.refresh_token);

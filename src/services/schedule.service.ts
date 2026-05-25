@@ -5,8 +5,9 @@ import type { ScheduleItem } from "@/types";
 
 export const scheduleService = {
   today: () => api.get<ScheduleItem[]>(endpoints.schedule.today),
-  week: () => api.get<ScheduleItem[]>(endpoints.schedule.week),
-  update: (item: ScheduleItem) => api.put<ScheduleItem>(endpoints.schedule.update, item),
-  reschedule: (id: string, start: string) =>
-    api.post<ScheduleItem>(endpoints.schedule.reschedule, { id, start }),
+  week: () => api.get<Record<string, unknown>>(endpoints.schedule.week),
+  update: (eventId: string, data: { title?: string; start_time?: string; end_time?: string; is_completed?: boolean }) =>
+    api.patch<{ id: string; message: string }>(`${endpoints.schedule.update}?event_id=${eventId}`, data),
+  reschedule: (event_type: string, context?: Record<string, unknown>) =>
+    api.post<Record<string, unknown>>(`${endpoints.schedule.reschedule}?event_type=${event_type}`, context ?? {}),
 };

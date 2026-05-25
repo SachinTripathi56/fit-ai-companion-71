@@ -5,6 +5,10 @@ import { GlassCard, SectionHeader } from "@/components/ui/glass-card";
 import { useTodayDiet, useGrocery } from "@/hooks/useDashboard";
 import { mockDiet } from "@/lib/mock-data";
 
+import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { dietService } from "@/services/diet.service";
+
 export const Route = createFileRoute("/_authenticated/diet")({
   head: () => ({ meta: [{ title: "Diet — AIFit" }] }),
   component: DietPage,
@@ -14,12 +18,37 @@ function DietPage() {
   const { data } = useTodayDiet();
   const { data: grocery } = useGrocery();
   const plan = data ?? mockDiet;
+  const queryClient = useQueryClient();
+  const [logging, setLogging] = useState<Record<string, boolean>>({});
 
   const macroData = [
     { name: "Protein", value: plan.macros.protein * 4, color: "oklch(0.78 0.18 155)" },
     { name: "Carbs", value: plan.macros.carbs * 4, color: "oklch(0.70 0.20 200)" },
     { name: "Fat", value: plan.macros.fat * 9, color: "oklch(0.70 0.20 290)" },
   ];
+
+  const logMeal = async (mealId: string) => {
+    setLogging((prev) => ({ ...prev, [mealId]: true }));
+    try {
+      await dietService.logMeal(mealId);
+      queryClient.invalidateQueries({ queryKey: ["diet"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLogging((prev) => ({ ...prev, [mealId]: false }));
+    }
+  };
+
+  const regenerate = async () => {
+    try {
+      await dietService.generate();
+      queryClient.invalidateQueries({ queryKey: ["diet"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -31,7 +60,7 @@ function DietPage() {
       <div className="grid lg:grid-cols-3 gap-4">
         <GlassCard className="lg:col-span-2">
           <SectionHeader title="Today's meal plan" subtitle={`${plan.total_calories} kcal · ${plan.meals.length} meals`}
-            action={<button className="text-sm flex items-center gap-1.5 text-primary"><RefreshCw className="size-3.5" /> Regenerate</button>} />
+            action={<button onClick={regenerate} className="text-sm flex items-center gap-1.5 text-primary"><RefreshCw className="size-3.5" /> Regenerate</button>} />
           <ol className="relative space-y-3 ml-3 border-l border-border pl-6">
             {plan.meals.map((m) => (
               <li key={m.id} className="relative">
@@ -48,6 +77,15 @@ function DietPage() {
                       <div className="text-xs text-muted-foreground mt-1">
                         P{m.macros.protein} · C{m.macros.carbs} · F{m.macros.fat}
                       </div>
+                      {/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(m.id) && (
+                        <button
+                          onClick={() => logMeal(m.id)}
+                          disabled={logging[m.id]}
+                          className="mt-2 text-xs px-2.5 py-1 rounded bg-primary/20 text-primary font-medium hover:bg-primary/30 transition disabled:opacity-50"
+                        >
+                          {logging[m.id] ? "Logging..." : "Log Eaten"}
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
