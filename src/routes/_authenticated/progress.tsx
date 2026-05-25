@@ -13,13 +13,13 @@ export const Route = createFileRoute("/_authenticated/progress")({
 });
 
 function ProgressPage() {
-  const { data } = useProgressSummary();
-  const weight = data?.weight ?? mockOverview.weight;
+  useProgressSummary();
+  const weight = mockOverview.weight;
   const [weightInput, setWeightInput] = useState("");
 
   const log = async () => {
     const n = Number(weightInput); if (!n) return;
-    try { await progressService.logWeight(n, new Date().toISOString().slice(0, 10)); } catch {}
+    try { await progressService.logWeight(n); } catch {}
     setWeightInput("");
   };
 

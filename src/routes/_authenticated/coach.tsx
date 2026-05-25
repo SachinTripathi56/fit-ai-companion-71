@@ -60,7 +60,7 @@ function CoachPage() {
   useEffect(() => {
     if (dbMessages && isUUID) {
       setSessions((prev) =>
-        prev.map((s) => (s.id === activeId ? { ...s, messages: dbMessages } : s))
+        prev.map((s) => (s.id === activeId ? { ...s, messages: dbMessages.messages } : s))
       );
     }
   }, [dbMessages, activeId, isUUID]);
