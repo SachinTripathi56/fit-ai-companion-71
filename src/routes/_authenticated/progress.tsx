@@ -13,7 +13,7 @@ export const Route = createFileRoute("/_authenticated/progress")({
 });
 
 function ProgressPage() {
-  const { data } = useProgressSummary();
+  useProgressSummary();
   const weight = mockOverview.weight;
   const [weightInput, setWeightInput] = useState("");
 
