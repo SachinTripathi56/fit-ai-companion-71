@@ -3,7 +3,7 @@
 
 export const API_BASE_URL =
   (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_API_BASE_URL) ||
-  "/api";
+  "https://ai-fitness-backend-6v9k.onrender.com";
 
 export const endpoints = {
   auth: {
