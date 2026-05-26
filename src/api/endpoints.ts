@@ -1,9 +1,14 @@
 // Backend APIs are developed separately using FastAPI.
 // Centralized endpoint registry — single source of truth for every URL.
 
-export const API_BASE_URL =
+const rawApiBaseUrl =
   (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_API_BASE_URL) ||
   "https://ai-fitness-backend-6v9k.onrender.com/api";
+
+export const API_BASE_URL = (() => {
+  const sanitized = rawApiBaseUrl.replace(/\/$/, "");
+  return sanitized.endsWith("/api") ? sanitized : `${sanitized}/api`;
+})();
 
 export const endpoints = {
   auth: {
