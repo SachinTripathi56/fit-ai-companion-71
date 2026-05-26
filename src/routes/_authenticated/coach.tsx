@@ -25,7 +25,7 @@ function CoachPage() {
   const { data: history } = useChatHistory();
   const [sessions, setSessions] = useState<ChatSession[]>(mockChatSessions);
   const [activeId, setActiveId] = useState<string>(sessions[0]?.id || "c1");
-  const active = sessions.find((s) => s.id === activeId) || mockChatSessions[0];
+  const active = sessions.find((s) => s.id === activeId) || sessions[0] || mockChatSessions[0];
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -60,7 +60,7 @@ function CoachPage() {
   useEffect(() => {
     if (dbMessages && isUUID) {
       setSessions((prev) =>
-        prev.map((s) => (s.id === activeId ? { ...s, messages: dbMessages.messages } : s))
+        prev.map((s) => (s.id === activeId ? { ...s, messages: Array.isArray(dbMessages) ? dbMessages : (dbMessages as any).messages || [] } : s))
       );
     }
   }, [dbMessages, activeId, isUUID]);
